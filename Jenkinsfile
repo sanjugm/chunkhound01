@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        VENV = ".venv"
-    }
-
     stages {
 
         stage('Checkout') {
@@ -16,8 +12,8 @@ pipeline {
         stage('Verify Python') {
             steps {
                 sh '''
-                    python3 --version
-                    pip3 --version
+                python3 --version
+                pip3 --version
                 '''
             }
         }
@@ -25,11 +21,10 @@ pipeline {
         stage('Create Virtual Environment') {
             steps {
                 sh '''
-                    python3 -m venv ${VENV}
-                    . ${VENV}/bin/activate
-
-                    python -m pip install --upgrade pip
-                    pip install uv
+                python3 -m venv .venv
+                . .venv/bin/activate
+                python -m pip install --upgrade pip
+                pip install uv
                 '''
             }
         }
@@ -37,45 +32,72 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    . ${VENV}/bin/activate
-                    uv sync
-                '''
-            }
-        }
-/*
-        stage('Run Tests') {
-            steps {
-                sh '''
-                    . ${VENV}/bin/activate
-                    uv run pytest
-                '''
-            }
-        }
-*/
-        stage('Build Package') {
-            steps {
-                sh '''
-                    . ${VENV}/bin/activate
-                    uv build
+                . .venv/bin/activate
+                uv sync
                 '''
             }
         }
 
-        stage('Archive Build') {
+        stage('Quality Check') {
+            steps {
+                sh '''
+                . .venv/bin/activate
+                python -m pip check
+                '''
+            }
+        }
+
+        stage('Build Package') {
+            steps {
+                sh '''
+                . .venv/bin/activate
+                uv build
+                '''
+            }
+        }
+
+        stage('Publish Artifact') {
             steps {
                 archiveArtifacts artifacts: 'dist/*', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying ChunkHound package...'
+                sh '''
+                . .venv/bin/activate
+                pip install --force-reinstall dist/*.whl
+                '''
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh '''
+                . .venv/bin/activate
+                chunkhound --version
+                '''
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh '''
+                . .venv/bin/activate
+                chunkhound --help
+                '''
             }
         }
     }
 
     post {
-
         success {
-            echo 'Build completed successfully.'
+            echo 'Build and deployment completed successfully.'
         }
 
         failure {
-            echo 'Build failed.'
+            echo 'Pipeline failed.'
         }
 
         always {
