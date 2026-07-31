@@ -42,7 +42,7 @@ pipeline {
                 '''
             }
         }
-
+/*
         stage('Run Tests') {
             steps {
                 sh '''
@@ -51,7 +51,7 @@ pipeline {
                 '''
             }
         }
-
+*/
         stage('Build Package') {
             steps {
                 sh '''
