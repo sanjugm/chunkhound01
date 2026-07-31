@@ -67,7 +67,7 @@ pipeline {
                 echo 'Deploying ChunkHound package...'
                 sh '''
                 . .venv/bin/activate
-                pip install --force-reinstall dist/*.whl
+                pip install dist/*.whl
                 '''
             }
         }
